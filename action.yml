@@ -1,0 +1,36 @@
+name: Auto Release Labeler and Note
+description: Automatically labels release PRs and creates release notes upon merging.
+author: 'KaitoMuraoka'
+branding:
+  icon: 'bookmark'
+  color: 'yellow'
+inputs:
+  github_token:
+    description: "GitHub Token"
+    required: true
+  release_label:
+    description: "Label to add to release PRs"
+    required: true
+  release_tag:
+    description: "Tag for the release"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Add label to release PRs
+      if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' && startsWith(github.head_ref, 'release/') }}
+      uses: actions-ecosystem/action-add-labels@v1
+      with:
+        github_token: ${{ inputs.github_token }}
+        labels: ${{ inputs.release_label }}
+    - name: Create Release Tag And Note
+      if: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/') }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        RELEASE_TAG: ${{ inputs.release_tag }}
+      uses: release-drafter/release-drafter@v6
+      with:
+        tag: ${{ env.RELEASE_TAG }}
+        name: v${{ env.RELEASE_TAG }}
+        version: ${{ env.RELEASE_TAG }}
+        publish: true
